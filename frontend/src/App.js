@@ -1,6 +1,6 @@
 // frontend/src/App.js
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import axios from 'axios';
 import {
   Container,
@@ -14,8 +14,12 @@ import {
   ListItem,
   ListItemText,
   Paper,
+  IconButton,
+  ThemeProvider,
+  createTheme,
 } from '@mui/material';
 import { styled } from '@mui/system';
+import { Clear, HelpOutline } from '@mui/icons-material';
 
 const LetterInput = styled(TextField)(({ theme }) => ({
   width: '50px',
@@ -25,6 +29,8 @@ const LetterInput = styled(TextField)(({ theme }) => ({
     textAlign: 'center',
     fontWeight: 'bold',
     fontSize: '18px',
+    padding: '10px',
+    color: '#fff',
   },
 }));
 
@@ -35,6 +41,9 @@ function App() {
   const [nextWords, setNextWords] = useState([]);
   const [error, setError] = useState('');
   const [validationError, setValidationError] = useState('');
+
+  const correctRefs = useRef([]);
+  const misplacedRefs = useRef([]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -69,6 +78,11 @@ function App() {
     newCorrectLetters[index] = letter;
     setCorrectLetters(newCorrectLetters);
     setValidationError('');
+
+    // Auto-focus to the next input
+    if (letter && index < 4) {
+      correctRefs.current[index + 1].focus();
+    }
   };
 
   const updateMisplacedLetters = (index, value) => {
@@ -87,6 +101,11 @@ function App() {
     }
     setMisplacedLetters(newMisplacedLetters);
     setValidationError('');
+
+    // Auto-focus to the next input
+    if (letter && index < 4) {
+      misplacedRefs.current[index + 1].focus();
+    }
   };
 
   const handleIncorrectLettersChange = (e) => {
@@ -116,115 +135,164 @@ function App() {
     }
   };
 
-  return (
-    <Container maxWidth="md" sx={{ marginTop: '40px' }}>
-      <Paper elevation={3} sx={{ padding: '30px' }}>
-        <Typography variant="h4" align="center" gutterBottom>
-          Wordle AI Assistant
-        </Typography>
+  const clearCorrectLetters = () => {
+    setCorrectLetters(['', '', '', '', '']);
+  };
 
-        <form onSubmit={handleSubmit}>
-          <Typography variant="h6" gutterBottom>
-            Enter Feedback:
+  const clearMisplacedLetters = () => {
+    setMisplacedLetters({});
+  };
+
+  const clearIncorrectLetters = () => {
+    setIncorrectLetters('');
+  };
+
+  // Create a dark theme
+  const darkTheme = createTheme({
+    palette: {
+      mode: 'dark',
+      background: {
+        default: '#121212',
+        paper: '#1e1e1e',
+      },
+      primary: {
+        main: '#90caf9',
+      },
+    },
+  });
+
+  return (
+    <ThemeProvider theme={darkTheme}>
+      <Container maxWidth="md" sx={{ marginTop: '40px' }}>
+        <Paper elevation={3} sx={{ padding: '30px', backgroundColor: darkTheme.palette.background.paper }}>
+          <Typography variant="h4" align="center" gutterBottom>
+            🔎 Wordle AI Assistant
           </Typography>
 
-          <Box sx={{ marginBottom: '20px' }}>
-            <Typography variant="subtitle1">Correct Letters (Green):</Typography>
-            <Grid container spacing={1}>
-              {[0, 1, 2, 3, 4].map((index) => (
-                <Grid item key={`correct-${index}`}>
-                  <LetterInput
-                    variant="outlined"
-                    inputProps={{ maxLength: 1 }}
-                    value={correctLetters[index]}
-                    onChange={(e) => updateCorrectLetters(index, e.target.value)}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        backgroundColor: '#6aaa64',
-                        color: '#fff',
-                      },
-                    }}
-                  />
-                </Grid>
-              ))}
-            </Grid>
-          </Box>
+          <form onSubmit={handleSubmit}>
+            <Typography variant="h6" gutterBottom>
+              Enter Feedback:
+            </Typography>
 
-          <Box sx={{ marginBottom: '20px' }}>
-            <Typography variant="subtitle1">Misplaced Letters (Yellow):</Typography>
-            <Grid container spacing={1}>
-              {[0, 1, 2, 3, 4].map((index) => (
-                <Grid item key={`misplaced-${index}`}>
-                  <LetterInput
-                    variant="outlined"
-                    inputProps={{ maxLength: 1 }}
-                    value={misplacedLetters[index] || ''}
-                    onChange={(e) => updateMisplacedLetters(index, e.target.value)}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        backgroundColor: '#c9b458',
-                        color: '#fff',
-                      },
-                    }}
-                  />
-                </Grid>
-              ))}
-            </Grid>
-          </Box>
+            <Box sx={{ marginBottom: '20px', position: 'relative' }}>
+              <Typography variant="subtitle1">Correct Letters (Green):</Typography>
+              <IconButton
+                onClick={clearCorrectLetters}
+                sx={{ position: 'absolute', right: 0, top: 0 }}
+                color="primary"
+              >
+                <Clear />
+              </IconButton>
+              <Grid container spacing={1}>
+                {[0, 1, 2, 3, 4].map((index) => (
+                  <Grid item key={`correct-${index}`}>
+                    <LetterInput
+                      variant="outlined"
+                      inputProps={{ maxLength: 1 }}
+                      value={correctLetters[index]}
+                      onChange={(e) => updateCorrectLetters(index, e.target.value)}
+                      inputRef={(el) => (correctRefs.current[index] = el)}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          backgroundColor: '#6aaa64',
+                        },
+                      }}
+                    />
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
 
-          <Box sx={{ marginBottom: '20px' }}>
-            <Typography variant="subtitle1">Incorrect Letters (Gray):</Typography>
-            <TextField
-              variant="outlined"
-              placeholder="Enter letters without spaces"
-              value={incorrectLetters.toUpperCase()}
-              onChange={handleIncorrectLettersChange}
-              inputProps={{ style: { textTransform: 'uppercase' } }}
+            <Box sx={{ marginBottom: '20px', position: 'relative' }}>
+              <Typography variant="subtitle1">Misplaced Letters (Yellow):</Typography>
+              <IconButton
+                onClick={clearMisplacedLetters}
+                sx={{ position: 'absolute', right: 0, top: 0 }}
+                color="primary"
+              >
+                <Clear />
+              </IconButton>
+              <Grid container spacing={1}>
+                {[0, 1, 2, 3, 4].map((index) => (
+                  <Grid item key={`misplaced-${index}`}>
+                    <LetterInput
+                      variant="outlined"
+                      inputProps={{ maxLength: 1 }}
+                      value={misplacedLetters[index] || ''}
+                      onChange={(e) => updateMisplacedLetters(index, e.target.value)}
+                      inputRef={(el) => (misplacedRefs.current[index] = el)}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          backgroundColor: '#c9b458',
+                        },
+                      }}
+                    />
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
+
+            <Box sx={{ marginBottom: '20px', position: 'relative' }}>
+              <Typography variant="subtitle1">Incorrect Letters (Gray):</Typography>
+              <IconButton
+                onClick={clearIncorrectLetters}
+                sx={{ position: 'absolute', right: 0, top: 0 }}
+                color="primary"
+              >
+                <Clear />
+              </IconButton>
+              <TextField
+                variant="outlined"
+                placeholder="Enter letters without spaces"
+                value={incorrectLetters.toUpperCase()}
+                onChange={handleIncorrectLettersChange}
+                inputProps={{ style: { textTransform: 'uppercase' } }}
+                fullWidth
+              />
+            </Box>
+
+            {validationError && (
+              <Alert severity="error" sx={{ marginBottom: '20px' }}>
+                {validationError}
+              </Alert>
+            )}
+
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
+              size="large"
               fullWidth
-            />
-          </Box>
+              disabled={!!validationError}
+            >
+              Get Next Words
+            </Button>
+          </form>
 
-          {validationError && (
-            <Alert severity="error" sx={{ marginBottom: '20px' }}>
-              {validationError}
-            </Alert>
+          {nextWords.length > 0 && (
+            <Box sx={{ marginTop: '30px' }}>
+              <Typography variant="h6">✨ Next Suggested Words:</Typography>
+              <List>
+                {nextWords.map((word, index) => (
+                  <ListItem key={index}>
+                    <ListItemText
+                      primary={word.toUpperCase()}
+                      primaryTypographyProps={{ fontSize: '18px', fontWeight: 'bold' }}
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            </Box>
           )}
 
-          <Button
-            type="submit"
-            variant="contained"
-            color="primary"
-            size="large"
-            fullWidth
-            disabled={!!validationError}
-          >
-            Get Next Words
-          </Button>
-        </form>
-
-        {nextWords.length > 0 && (
-          <Box sx={{ marginTop: '30px' }}>
-            <Typography variant="h6">Next Suggested Words:</Typography>
-            <List>
-              {nextWords.map((word, index) => (
-                <ListItem key={index}>
-                  <ListItemText
-                    primary={word.toUpperCase()}
-                    primaryTypographyProps={{ fontSize: '18px', fontWeight: 'bold' }}
-                  />
-                </ListItem>
-              ))}
-            </List>
-          </Box>
-        )}
-
-        {error && (
-          <Alert severity="error" sx={{ marginTop: '20px' }}>
-            {error}
-          </Alert>
-        )}
-      </Paper>
-    </Container>
+          {error && (
+            <Alert severity="error" sx={{ marginTop: '20px' }}>
+              {error}
+            </Alert>
+          )}
+        </Paper>
+      </Container>
+    </ThemeProvider>
   );
 }
 
