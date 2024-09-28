@@ -2,6 +2,31 @@
 
 import React, { useState } from 'react';
 import axios from 'axios';
+import {
+  Container,
+  Typography,
+  TextField,
+  Button,
+  Grid,
+  Alert,
+  Box,
+  List,
+  ListItem,
+  ListItemText,
+  Paper,
+} from '@mui/material';
+import { styled } from '@mui/system';
+
+const LetterInput = styled(TextField)(({ theme }) => ({
+  width: '50px',
+  marginRight: '5px',
+  '& input': {
+    textTransform: 'uppercase',
+    textAlign: 'center',
+    fontWeight: 'bold',
+    fontSize: '18px',
+  },
+}));
 
 function App() {
   const [correctLetters, setCorrectLetters] = useState(['', '', '', '', '']);
@@ -9,15 +34,16 @@ function App() {
   const [incorrectLetters, setIncorrectLetters] = useState('');
   const [nextWords, setNextWords] = useState([]);
   const [error, setError] = useState('');
+  const [validationError, setValidationError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     // Prepare data for the backend
     const data = {
-      correctLetters: correctLetters.map(letter => letter || null),
+      correctLetters: correctLetters.map((letter) => letter || null),
       misplacedLetters,
-      incorrectLetters: incorrectLetters.split('').filter(letter => letter)
+      incorrectLetters: incorrectLetters.split('').filter((letter) => letter),
     };
 
     try {
@@ -33,126 +59,172 @@ function App() {
   // Functions to update the letter arrays
   const updateCorrectLetters = (index, value) => {
     const newCorrectLetters = [...correctLetters];
-    newCorrectLetters[index] = value.toLowerCase();
+    const letter = value.toLowerCase();
+
+    // Remove the letter from incorrect letters if present
+    if (incorrectLetters.includes(letter)) {
+      setIncorrectLetters((prev) => prev.replace(new RegExp(letter, 'g'), ''));
+    }
+
+    newCorrectLetters[index] = letter;
     setCorrectLetters(newCorrectLetters);
+    setValidationError('');
   };
 
   const updateMisplacedLetters = (index, value) => {
     const newMisplacedLetters = { ...misplacedLetters };
-    if (value) {
-      newMisplacedLetters[index] = value.toLowerCase();
+    const letter = value.toLowerCase();
+
+    if (letter) {
+      // Remove the letter from incorrect letters if present
+      if (incorrectLetters.includes(letter)) {
+        setIncorrectLetters((prev) => prev.replace(new RegExp(letter, 'g'), ''));
+      }
+
+      newMisplacedLetters[index] = letter;
     } else {
       delete newMisplacedLetters[index];
     }
     setMisplacedLetters(newMisplacedLetters);
+    setValidationError('');
   };
 
   const handleIncorrectLettersChange = (e) => {
-    const value = e.target.value.toLowerCase().replace(/[^a-z]/g, '');
-    setIncorrectLetters(value);
+    const input = e.target.value.toLowerCase().replace(/[^a-z]/g, '');
+
+    // Check for letters that are already in correct or misplaced letters
+    const allUsedLetters = [
+      ...correctLetters.filter((letter) => letter),
+      ...Object.values(misplacedLetters),
+    ];
+
+    const duplicateLetters = allUsedLetters.filter((letter) => input.includes(letter));
+
+    if (duplicateLetters.length > 0) {
+      setValidationError(
+        `The letter(s) "${duplicateLetters.join(', ').toUpperCase()}" cannot be in Incorrect Letters because they are already in Correct or Misplaced Letters.`
+      );
+      // Remove duplicate letters from the input
+      const filteredInput = input
+        .split('')
+        .filter((letter) => !duplicateLetters.includes(letter))
+        .join('');
+      setIncorrectLetters(filteredInput);
+    } else {
+      setIncorrectLetters(input);
+      setValidationError('');
+    }
   };
 
   return (
-    <div style={{ padding: '20px' }}>
-      <h1>Wordle AI Assistant</h1>
+    <Container maxWidth="md" sx={{ marginTop: '40px' }}>
+      <Paper elevation={3} sx={{ padding: '30px' }}>
+        <Typography variant="h4" align="center" gutterBottom>
+          Wordle AI Assistant
+        </Typography>
 
-      <form onSubmit={handleSubmit}>
-        <h2>Enter Feedback:</h2>
+        <form onSubmit={handleSubmit}>
+          <Typography variant="h6" gutterBottom>
+            Enter Feedback:
+          </Typography>
 
-        <div>
-          <h3>Correct Letters (Green):</h3>
-          {[0, 1, 2, 3, 4].map((index) => (
-            <input
-              key={`correct-${index}`}
-              type="text"
-              maxLength="1"
-              value={correctLetters[index]}
-              onChange={(e) => updateCorrectLetters(index, e.target.value)}
-              style={{
-                width: '30px',
-                height: '30px',
-                textAlign: 'center',
-                marginRight: '5px',
-                backgroundColor: '#6aaa64',
-                color: '#fff',
-                fontSize: '16px',
-                fontWeight: 'bold',
-                textTransform: 'uppercase',
-              }}
+          <Box sx={{ marginBottom: '20px' }}>
+            <Typography variant="subtitle1">Correct Letters (Green):</Typography>
+            <Grid container spacing={1}>
+              {[0, 1, 2, 3, 4].map((index) => (
+                <Grid item key={`correct-${index}`}>
+                  <LetterInput
+                    variant="outlined"
+                    inputProps={{ maxLength: 1 }}
+                    value={correctLetters[index]}
+                    onChange={(e) => updateCorrectLetters(index, e.target.value)}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        backgroundColor: '#6aaa64',
+                        color: '#fff',
+                      },
+                    }}
+                  />
+                </Grid>
+              ))}
+            </Grid>
+          </Box>
+
+          <Box sx={{ marginBottom: '20px' }}>
+            <Typography variant="subtitle1">Misplaced Letters (Yellow):</Typography>
+            <Grid container spacing={1}>
+              {[0, 1, 2, 3, 4].map((index) => (
+                <Grid item key={`misplaced-${index}`}>
+                  <LetterInput
+                    variant="outlined"
+                    inputProps={{ maxLength: 1 }}
+                    value={misplacedLetters[index] || ''}
+                    onChange={(e) => updateMisplacedLetters(index, e.target.value)}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        backgroundColor: '#c9b458',
+                        color: '#fff',
+                      },
+                    }}
+                  />
+                </Grid>
+              ))}
+            </Grid>
+          </Box>
+
+          <Box sx={{ marginBottom: '20px' }}>
+            <Typography variant="subtitle1">Incorrect Letters (Gray):</Typography>
+            <TextField
+              variant="outlined"
+              placeholder="Enter letters without spaces"
+              value={incorrectLetters.toUpperCase()}
+              onChange={handleIncorrectLettersChange}
+              inputProps={{ style: { textTransform: 'uppercase' } }}
+              fullWidth
             />
-          ))}
-        </div>
+          </Box>
 
-        <div style={{ marginTop: '15px' }}>
-          <h3>Misplaced Letters (Yellow):</h3>
-          {[0, 1, 2, 3, 4].map((index) => (
-            <input
-              key={`misplaced-${index}`}
-              type="text"
-              maxLength="1"
-              value={misplacedLetters[index] || ''}
-              onChange={(e) => updateMisplacedLetters(index, e.target.value)}
-              style={{
-                width: '30px',
-                height: '30px',
-                textAlign: 'center',
-                marginRight: '5px',
-                backgroundColor: '#c9b458',
-                color: '#fff',
-                fontSize: '16px',
-                fontWeight: 'bold',
-                textTransform: 'uppercase',
-              }}
-            />
-          ))}
-        </div>
+          {validationError && (
+            <Alert severity="error" sx={{ marginBottom: '20px' }}>
+              {validationError}
+            </Alert>
+          )}
 
-        <div style={{ marginTop: '15px' }}>
-          <h3>Incorrect Letters (Gray):</h3>
-          <input
-            type="text"
-            value={incorrectLetters}
-            onChange={handleIncorrectLettersChange}
-            placeholder="Enter letters without spaces"
-            style={{
-              width: '200px',
-              height: '30px',
-              textAlign: 'center',
-              fontSize: '16px',
-              textTransform: 'uppercase',
-            }}
-          />
-        </div>
+          <Button
+            type="submit"
+            variant="contained"
+            color="primary"
+            size="large"
+            fullWidth
+            disabled={!!validationError}
+          >
+            Get Next Words
+          </Button>
+        </form>
 
-        <button
-          type="submit"
-          style={{
-            marginTop: '20px',
-            padding: '10px 20px',
-            fontSize: '16px',
-            fontWeight: 'bold',
-            cursor: 'pointer',
-          }}
-        >
-          Get Next Words
-        </button>
-      </form>
+        {nextWords.length > 0 && (
+          <Box sx={{ marginTop: '30px' }}>
+            <Typography variant="h6">Next Suggested Words:</Typography>
+            <List>
+              {nextWords.map((word, index) => (
+                <ListItem key={index}>
+                  <ListItemText
+                    primary={word.toUpperCase()}
+                    primaryTypographyProps={{ fontSize: '18px', fontWeight: 'bold' }}
+                  />
+                </ListItem>
+              ))}
+            </List>
+          </Box>
+        )}
 
-      {nextWords.length > 0 && (
-        <div style={{ marginTop: '30px' }}>
-          <h2>Next Suggested Words:</h2>
-          <ul>
-            {nextWords.map((word, index) => (
-              <li key={index} style={{ fontSize: '18px', fontWeight: 'bold', textTransform: 'uppercase' }}>
-                {word}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {error && <p style={{ color: 'red', marginTop: '20px' }}>{error}</p>}
-    </div>
+        {error && (
+          <Alert severity="error" sx={{ marginTop: '20px' }}>
+            {error}
+          </Alert>
+        )}
+      </Paper>
+    </Container>
   );
 }
 
