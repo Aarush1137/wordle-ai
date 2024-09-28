@@ -9,6 +9,7 @@ app.use(express.json());
 // Replace with your actual connection string
 
 
+
 mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('Connected to MongoDB Atlas'))
   .catch((error) => console.error('MongoDB connection error:', error));
@@ -21,7 +22,7 @@ mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true })
     timestamp: { type: Date, default: Date.now }
   });
   
-  const Interaction = mongoose.model('Interaction', interactionSchema);
+const Interaction = mongoose.model('Interaction', interactionSchema);
   
 // Start the server
 app.listen(port, () => {
@@ -50,10 +51,26 @@ app.post('/api/get-next-word', (req, res) => {
     console.error(`Python error: ${data}`);
   });
 
+
   pythonProcess.on('close', (code) => {
     if (code !== 0) {
       return res.status(500).send('Error executing Python script');
     }
-    res.json({ nextWord: pythonOutput.trim() });
+    const nextWord = pythonOutput.trim();
+  
+    // Save interaction to MongoDB
+    const newInteraction = new Interaction({
+      correctLetters,
+      misplacedLetters,
+      incorrectLetters,
+      nextWord
+    });
+  
+    newInteraction.save()
+      .then(() => console.log('Interaction saved'))
+      .catch((error) => console.error('Error saving interaction:', error));
+  
+    res.json({ nextWord });
   });
+  
 });
