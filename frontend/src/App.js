@@ -14,7 +14,7 @@ import {
   List,
   ListItem,
   ListItemText,
-  Alert, // <-- Added Alert here
+  Alert,
 } from '@mui/material';
 import { styled } from '@mui/system';
 
@@ -38,12 +38,19 @@ function App() {
   const [nextWordsData, setNextWordsData] = useState([]);
   const [error, setError] = useState('');
   const [validationError, setValidationError] = useState('');
+  const [showOpeningWords, setShowOpeningWords] = useState(true); // New state variable
 
   const correctRefs = useRef([]);
   const misplacedRefs = useRef([]);
 
+  // Opening words to display at the start
+  const openingWords = ['canoe', 'strip', 'fugly', 'crane', 'slate', 'toils'];
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Hide opening words after submission
+    setShowOpeningWords(false);
 
     // Prepare data for the backend
     const data = {
@@ -170,6 +177,26 @@ function App() {
             🔎 Wordle AI Assistant
           </Typography>
 
+            {showOpeningWords && (
+              <Box sx={{ marginBottom: '30px' }}>
+              <Typography variant="h6" gutterBottom>
+              🔮 Suggested Opening Words:
+              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'row', gap: '10px' }}>
+              {openingWords.map((word, index) => (
+                <Box key={index} sx={{ marginRight: '10px' }}>
+                  <Typography
+                    variant="body1"
+                    sx={{ fontSize: '18px', fontWeight: 'bold' }}
+                  >
+                    {word.toUpperCase()}
+          </Typography>
+                  </Box>
+              ))}
+            </Box>
+            </Box>
+          )}
+
           <form onSubmit={handleSubmit}>
             <Typography variant="h6" gutterBottom>
               Enter Feedback:
@@ -285,7 +312,7 @@ function App() {
                 {nextWordsData.map((item, index) => (
                   <ListItem key={index}>
                     <ListItemText
-                      primary={`${item.word.toUpperCase()} - Score: ${item.score}`}
+                      primary={`${item.word.toUpperCase()} - Score: ${item.score.toFixed(2)}`}
                       primaryTypographyProps={{ fontSize: '18px', fontWeight: 'bold' }}
                     />
                   </ListItem>
