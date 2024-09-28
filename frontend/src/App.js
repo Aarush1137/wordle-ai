@@ -7,19 +7,16 @@ import {
   Typography,
   TextField,
   Button,
-  Grid,
-  Alert,
   Box,
+  Paper,
+  ThemeProvider,
+  createTheme,
   List,
   ListItem,
   ListItemText,
-  Paper,
-  IconButton,
-  ThemeProvider,
-  createTheme,
+  Alert, // <-- Added Alert here
 } from '@mui/material';
 import { styled } from '@mui/system';
-import { Clear, HelpOutline } from '@mui/icons-material';
 
 const LetterInput = styled(TextField)(({ theme }) => ({
   width: '50px',
@@ -38,7 +35,7 @@ function App() {
   const [correctLetters, setCorrectLetters] = useState(['', '', '', '', '']);
   const [misplacedLetters, setMisplacedLetters] = useState({});
   const [incorrectLetters, setIncorrectLetters] = useState('');
-  const [nextWords, setNextWords] = useState([]);
+  const [nextWordsData, setNextWordsData] = useState([]);
   const [error, setError] = useState('');
   const [validationError, setValidationError] = useState('');
 
@@ -57,7 +54,7 @@ function App() {
 
     try {
       const response = await axios.post('http://localhost:5000/api/get-next-words', data);
-      setNextWords(response.data.nextWords);
+      setNextWordsData(response.data.nextWords);
       setError('');
     } catch (error) {
       console.error('There was an error!', error);
@@ -66,6 +63,7 @@ function App() {
   };
 
   // Functions to update the letter arrays
+
   const updateCorrectLetters = (index, value) => {
     const newCorrectLetters = [...correctLetters];
     const letter = value.toLowerCase();
@@ -137,14 +135,17 @@ function App() {
 
   const clearCorrectLetters = () => {
     setCorrectLetters(['', '', '', '', '']);
+    setValidationError('');
   };
 
   const clearMisplacedLetters = () => {
     setMisplacedLetters({});
+    setValidationError('');
   };
 
   const clearIncorrectLetters = () => {
     setIncorrectLetters('');
+    setValidationError('');
   };
 
   // Create a dark theme
@@ -174,73 +175,77 @@ function App() {
               Enter Feedback:
             </Typography>
 
+            {/* Correct Letters Section */}
             <Box sx={{ marginBottom: '20px', position: 'relative' }}>
               <Typography variant="subtitle1">Correct Letters (Green):</Typography>
-              <IconButton
+              <Button
                 onClick={clearCorrectLetters}
                 sx={{ position: 'absolute', right: 0, top: 0 }}
                 color="primary"
+                variant="text"
               >
-                <Clear />
-              </IconButton>
-              <Grid container spacing={1}>
+                Clear
+              </Button>
+              <Box sx={{ display: 'flex', marginTop: '10px' }}>
                 {[0, 1, 2, 3, 4].map((index) => (
-                  <Grid item key={`correct-${index}`}>
-                    <LetterInput
-                      variant="outlined"
-                      inputProps={{ maxLength: 1 }}
-                      value={correctLetters[index]}
-                      onChange={(e) => updateCorrectLetters(index, e.target.value)}
-                      inputRef={(el) => (correctRefs.current[index] = el)}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          backgroundColor: '#6aaa64',
-                        },
-                      }}
-                    />
-                  </Grid>
+                  <LetterInput
+                    key={`correct-${index}`}
+                    variant="outlined"
+                    inputProps={{ maxLength: 1 }}
+                    value={correctLetters[index]}
+                    onChange={(e) => updateCorrectLetters(index, e.target.value)}
+                    inputRef={(el) => (correctRefs.current[index] = el)}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        backgroundColor: '#6aaa64',
+                      },
+                    }}
+                  />
                 ))}
-              </Grid>
+              </Box>
             </Box>
 
+            {/* Misplaced Letters Section */}
             <Box sx={{ marginBottom: '20px', position: 'relative' }}>
               <Typography variant="subtitle1">Misplaced Letters (Yellow):</Typography>
-              <IconButton
+              <Button
                 onClick={clearMisplacedLetters}
                 sx={{ position: 'absolute', right: 0, top: 0 }}
                 color="primary"
+                variant="text"
               >
-                <Clear />
-              </IconButton>
-              <Grid container spacing={1}>
+                Clear
+              </Button>
+              <Box sx={{ display: 'flex', marginTop: '10px' }}>
                 {[0, 1, 2, 3, 4].map((index) => (
-                  <Grid item key={`misplaced-${index}`}>
-                    <LetterInput
-                      variant="outlined"
-                      inputProps={{ maxLength: 1 }}
-                      value={misplacedLetters[index] || ''}
-                      onChange={(e) => updateMisplacedLetters(index, e.target.value)}
-                      inputRef={(el) => (misplacedRefs.current[index] = el)}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          backgroundColor: '#c9b458',
-                        },
-                      }}
-                    />
-                  </Grid>
+                  <LetterInput
+                    key={`misplaced-${index}`}
+                    variant="outlined"
+                    inputProps={{ maxLength: 1 }}
+                    value={misplacedLetters[index] || ''}
+                    onChange={(e) => updateMisplacedLetters(index, e.target.value)}
+                    inputRef={(el) => (misplacedRefs.current[index] = el)}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        backgroundColor: '#c9b458',
+                      },
+                    }}
+                  />
                 ))}
-              </Grid>
+              </Box>
             </Box>
 
+            {/* Incorrect Letters Section */}
             <Box sx={{ marginBottom: '20px', position: 'relative' }}>
               <Typography variant="subtitle1">Incorrect Letters (Gray):</Typography>
-              <IconButton
+              <Button
                 onClick={clearIncorrectLetters}
                 sx={{ position: 'absolute', right: 0, top: 0 }}
                 color="primary"
+                variant="text"
               >
-                <Clear />
-              </IconButton>
+                Clear
+              </Button>
               <TextField
                 variant="outlined"
                 placeholder="Enter letters without spaces"
@@ -248,6 +253,7 @@ function App() {
                 onChange={handleIncorrectLettersChange}
                 inputProps={{ style: { textTransform: 'uppercase' } }}
                 fullWidth
+                sx={{ marginTop: '10px' }}
               />
             </Box>
 
@@ -269,14 +275,17 @@ function App() {
             </Button>
           </form>
 
-          {nextWords.length > 0 && (
+          {/* Display the Suggested Words with Scores */}
+          {nextWordsData.length > 0 && (
             <Box sx={{ marginTop: '30px' }}>
-              <Typography variant="h6">✨ Next Suggested Words:</Typography>
+              <Typography variant="h6" gutterBottom>
+                🔮 Next Suggested Words:
+              </Typography>
               <List>
-                {nextWords.map((word, index) => (
+                {nextWordsData.map((item, index) => (
                   <ListItem key={index}>
                     <ListItemText
-                      primary={word.toUpperCase()}
+                      primary={`${item.word.toUpperCase()} - Score: ${item.score}`}
                       primaryTypographyProps={{ fontSize: '18px', fontWeight: 'bold' }}
                     />
                   </ListItem>
