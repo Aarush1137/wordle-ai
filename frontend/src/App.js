@@ -1,60 +1,157 @@
-import './App.css';
 // frontend/src/App.js
+
 import React, { useState } from 'react';
 import axios from 'axios';
 
 function App() {
-  const [guessedWord, setGuessedWord] = useState('');
-  const [correctLetters, setCorrectLetters] = useState([null, null, null, null, null]);
+  const [correctLetters, setCorrectLetters] = useState(['', '', '', '', '']);
   const [misplacedLetters, setMisplacedLetters] = useState({});
-  const [incorrectLetters, setIncorrectLetters] = useState([]);
-  const [nextWord, setNextWord] = useState('');
+  const [incorrectLetters, setIncorrectLetters] = useState('');
+  const [nextWords, setNextWords] = useState([]);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     // Prepare data for the backend
     const data = {
-      correctLetters,
+      correctLetters: correctLetters.map(letter => letter || null),
       misplacedLetters,
-      incorrectLetters
+      incorrectLetters: incorrectLetters.split('').filter(letter => letter)
     };
 
-    axios.post('http://localhost:5000/api/get-next-word', data)
-      .then((response) => {
-        setNextWord(response.data.nextWord);
-      })
-      .catch((error) => {
-        console.error('There was an error!', error);
-      });
+    try {
+      const response = await axios.post('http://localhost:5000/api/get-next-words', data);
+      setNextWords(response.data.nextWords);
+      setError('');
+    } catch (error) {
+      console.error('There was an error!', error);
+      setError('An error occurred while fetching the next words.');
+    }
+  };
+
+  // Functions to update the letter arrays
+  const updateCorrectLetters = (index, value) => {
+    const newCorrectLetters = [...correctLetters];
+    newCorrectLetters[index] = value.toLowerCase();
+    setCorrectLetters(newCorrectLetters);
+  };
+
+  const updateMisplacedLetters = (index, value) => {
+    const newMisplacedLetters = { ...misplacedLetters };
+    if (value) {
+      newMisplacedLetters[index] = value.toLowerCase();
+    } else {
+      delete newMisplacedLetters[index];
+    }
+    setMisplacedLetters(newMisplacedLetters);
+  };
+
+  const handleIncorrectLettersChange = (e) => {
+    const value = e.target.value.toLowerCase().replace(/[^a-z]/g, '');
+    setIncorrectLetters(value);
   };
 
   return (
-    <div>
+    <div style={{ padding: '20px' }}>
       <h1>Wordle AI Assistant</h1>
 
-      {/* Form to input guessed word and feedback */}
       <form onSubmit={handleSubmit}>
-        <label>
-          Guessed Word:
+        <h2>Enter Feedback:</h2>
+
+        <div>
+          <h3>Correct Letters (Green):</h3>
+          {[0, 1, 2, 3, 4].map((index) => (
+            <input
+              key={`correct-${index}`}
+              type="text"
+              maxLength="1"
+              value={correctLetters[index]}
+              onChange={(e) => updateCorrectLetters(index, e.target.value)}
+              style={{
+                width: '30px',
+                height: '30px',
+                textAlign: 'center',
+                marginRight: '5px',
+                backgroundColor: '#6aaa64',
+                color: '#fff',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                textTransform: 'uppercase',
+              }}
+            />
+          ))}
+        </div>
+
+        <div style={{ marginTop: '15px' }}>
+          <h3>Misplaced Letters (Yellow):</h3>
+          {[0, 1, 2, 3, 4].map((index) => (
+            <input
+              key={`misplaced-${index}`}
+              type="text"
+              maxLength="1"
+              value={misplacedLetters[index] || ''}
+              onChange={(e) => updateMisplacedLetters(index, e.target.value)}
+              style={{
+                width: '30px',
+                height: '30px',
+                textAlign: 'center',
+                marginRight: '5px',
+                backgroundColor: '#c9b458',
+                color: '#fff',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                textTransform: 'uppercase',
+              }}
+            />
+          ))}
+        </div>
+
+        <div style={{ marginTop: '15px' }}>
+          <h3>Incorrect Letters (Gray):</h3>
           <input
             type="text"
-            value={guessedWord}
-            onChange={(e) => setGuessedWord(e.target.value)}
+            value={incorrectLetters}
+            onChange={handleIncorrectLettersChange}
+            placeholder="Enter letters without spaces"
+            style={{
+              width: '200px',
+              height: '30px',
+              textAlign: 'center',
+              fontSize: '16px',
+              textTransform: 'uppercase',
+            }}
           />
-        </label>
-        {/* Add inputs for correctLetters, misplacedLetters, and incorrectLetters */}
-        {/* For simplicity, you can manually input these or create interactive components */}
-        <button type="submit">Get Next Word</button>
+        </div>
+
+        <button
+          type="submit"
+          style={{
+            marginTop: '20px',
+            padding: '10px 20px',
+            fontSize: '16px',
+            fontWeight: 'bold',
+            cursor: 'pointer',
+          }}
+        >
+          Get Next Words
+        </button>
       </form>
 
-      {/* Display the next suggested word */}
-      {nextWord && (
-        <div>
-          <h2>Next Suggested Word:</h2>
-          <p>{nextWord}</p>
+      {nextWords.length > 0 && (
+        <div style={{ marginTop: '30px' }}>
+          <h2>Next Suggested Words:</h2>
+          <ul>
+            {nextWords.map((word, index) => (
+              <li key={index} style={{ fontSize: '18px', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                {word}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
+
+      {error && <p style={{ color: 'red', marginTop: '20px' }}>{error}</p>}
     </div>
   );
 }
