@@ -20,7 +20,7 @@ app.post('/api/get-next-word', (req, res) => {
   const { correctLetters, misplacedLetters, incorrectLetters } = req.body;
 
   // Spawn a new Python process
-  const pythonProcess = spawn('python', ['../wordle_ai.py',
+  const pythonProcess = spawn('python', ['./wordle_ai.py',
     JSON.stringify(correctLetters),
     JSON.stringify(misplacedLetters),
     JSON.stringify(incorrectLetters)
